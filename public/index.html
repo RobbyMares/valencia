@@ -258,7 +258,10 @@ function cardHTML(d){
     <div class="embed-wrap"></div>
     <div class="card-foot">
       <span class="price">${d.prijs || ""}</span>
-      <a class="reel-link" data-action="preview">Bekijk voorbeeld &#8595;</a>
+      <span style="display:flex; gap:12px; align-items:center;">
+        <a class="reel-link" data-action="preview">Voorbeeld &#8595;</a>
+        <a class="reel-link" href="${d.url}" target="_blank" rel="noopener">Open &#8599;</a>
+      </span>
     </div>
   </article>`;
 }
@@ -331,22 +334,31 @@ document.addEventListener("click", (e) => {
       return;
     }
     const url = card.dataset.url;
-    wrap.innerHTML = `<div class="embed-loading">Instagram-voorbeeld laden&hellip;</div>
+    wrap.innerHTML = `<div class="embed-loading" data-role="loading">Instagram-voorbeeld laden&hellip; (kan geblokkeerd worden door adblockers/trackingbescherming)</div>
       <blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-version="14" style="margin:0; width:100%;"></blockquote>`;
     wrap.dataset.loaded = "1";
-    previewBtn.innerHTML = "Verberg voorbeeld &#8593;";
+    previewBtn.innerHTML = "Verberg &#8593;";
+    const showFallback = () => {
+      const loadingEl = wrap.querySelector('[data-role="loading"]');
+      if(loadingEl){
+        loadingEl.innerHTML = `Kon geen Instagram-voorbeeld laden (vaak door een adblocker/tracking-bescherming). <a href="${url}" target="_blank" rel="noopener" style="color:var(--blue); font-weight:600;">Open de reel rechtstreeks &#8599;</a>`;
+      }
+    };
     if(window.instgrm && window.instgrm.Embeds){
       window.instgrm.Embeds.process();
+      setTimeout(() => { if(!wrap.querySelector("iframe")) showFallback(); }, 3000);
     } else {
-      // embed.js not ready yet; poll briefly
+      // embed.js not ready yet, or blocked entirely; poll briefly
       let tries = 0;
       const t = setInterval(() => {
         tries++;
         if(window.instgrm && window.instgrm.Embeds){
           window.instgrm.Embeds.process();
           clearInterval(t);
-        } else if(tries > 20){
+          setTimeout(() => { if(!wrap.querySelector("iframe")) showFallback(); }, 3000);
+        } else if(tries > 12){
           clearInterval(t);
+          showFallback();
         }
       }, 250);
     }
