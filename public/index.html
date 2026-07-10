@@ -47,6 +47,22 @@
   .controls-inner{max-width:1180px; margin:0 auto;}
   .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
   .row + .row{margin-top:12px;}
+  .frow{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
+  .filters-toggle{
+    display:inline-flex; align-items:center; gap:8px;
+    background:transparent; border:1px solid var(--line); color:var(--text-dim);
+    font-family:'Inter',sans-serif; font-size:13px; font-weight:500; padding:8px 14px; border-radius:10px; cursor:pointer;
+  }
+  .filters-toggle:hover{ color:var(--text); border-color:var(--text-dim); }
+  .filters-toggle .chev{ transition: transform .2s ease; flex-shrink:0; }
+  .filters-toggle[aria-expanded="false"] .chev{ transform:rotate(-90deg); }
+  .filters-panel{
+    display:flex; flex-direction:column; gap:12px;
+    overflow:hidden; max-height:1000px; opacity:1;
+    transition:max-height .25s ease, opacity .2s ease, margin-top .2s ease;
+    margin-top:12px;
+  }
+  .filters-panel.collapsed{ max-height:0; opacity:0; margin-top:0; }
   .search-wrap{position:relative; flex:1 1 260px; min-width:220px;}
   .search-wrap input{width:100%; background:var(--panel); border:1px solid var(--line); color:var(--text); font-family:'Inter',sans-serif; font-size:14px; padding:10px 14px 10px 34px; border-radius:10px; outline:none;}
   .search-wrap input:focus{border-color:var(--blue); box-shadow:0 0 0 3px rgba(90,169,199,0.18);}
@@ -107,6 +123,7 @@
   @media (max-width:640px){
     header.hero{padding:32px 16px 24px;} .controls{padding:12px 16px;}
     .count-row, main, footer{padding-left:16px; padding-right:16px;}
+    .filters-toggle{width:100%; justify-content:space-between; padding:10px 14px;}
   }
 </style>
 </head>
@@ -116,7 +133,7 @@
   <div class="hero-inner">
     <p class="eyebrow">Balcón de Montroi &rarr; reisideeën</p>
     <h1>Val&egrave;ncia, <em>gesorteerd</em></h1>
-    <p class="hero-sub">Alle reels uit de Instagram-collectie &ldquo;Valencia&rdquo; van @proby89 &mdash; gefilterd op thema, geschiktheid voor kinderen en afstand vanaf huis, met contactinfo per plek en een live Instagram-voorbeeld op aanvraag.</p>
+    <p class="hero-sub">Alle reels uit de Instagram-collectie &ldquo;Valencia&rdquo;.</p>
     <div class="hero-stats" id="heroStats"></div>
   </div>
 </header>
@@ -137,14 +154,24 @@
       <button class="reset" id="resetBtn">Reset filters</button>
     </div>
     <div class="row">
-      <span class="label">Thema</span>
-      <div class="chipgroup" id="groepChips"></div>
+      <button class="filters-toggle" id="filtersToggle" aria-expanded="true" aria-controls="filtersPanel">
+        <span id="filtersToggleLabel">Filters</span>
+        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
     </div>
-    <div class="row">
-      <span class="label">Kinderen</span>
-      <div class="chipgroup" id="kidsChips"></div>
-      <span class="label" style="margin-left:8px;">Afstand</span>
-      <div class="chipgroup" id="afstandChips"></div>
+    <div class="filters-panel" id="filtersPanel">
+      <div class="frow">
+        <span class="label">Thema</span>
+        <div class="chipgroup" id="groepChips"></div>
+      </div>
+      <div class="frow">
+        <span class="label">Kinderen</span>
+        <div class="chipgroup" id="kidsChips"></div>
+      </div>
+      <div class="frow">
+        <span class="label">Afstand</span>
+        <div class="chipgroup" id="afstandChips"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -295,6 +322,7 @@ function applyFilters(){
 
 function render(){
   renderChips();
+  updateFiltersToggleLabel();
   const filtered = applyFilters();
   document.getElementById("visibleCount").textContent = filtered.length;
   const grid = document.getElementById("grid");
@@ -307,6 +335,23 @@ function render(){
     grid.innerHTML = filtered.map(cardHTML).join("");
   }
 }
+
+function updateFiltersToggleLabel(){
+  const n = state.excludedGroep.size + state.excludedKids.size + state.excludedAfstand.size;
+  const label = document.getElementById("filtersToggleLabel");
+  label.textContent = n > 0 ? `Filters (${n} uitgesloten)` : "Filters";
+}
+
+const filtersToggle = document.getElementById("filtersToggle");
+const filtersPanel = document.getElementById("filtersPanel");
+function setFiltersOpen(open){
+  filtersPanel.classList.toggle("collapsed", !open);
+  filtersToggle.setAttribute("aria-expanded", open ? "true" : "false");
+}
+setFiltersOpen(window.matchMedia("(min-width: 641px)").matches);
+filtersToggle.addEventListener("click", () => {
+  setFiltersOpen(filtersToggle.getAttribute("aria-expanded") !== "true");
+});
 
 document.addEventListener("click", (e) => {
   const chipEl = e.target.closest(".chip");
